@@ -1,0 +1,219 @@
+[
+    {
+        "title": "Edit Rwanda Administrative Location Selector",
+        "properties": [
+            {
+                "name": "id",
+                "label": "ID",
+                "type": "textfield",
+                "required": "True"
+            },
+            {
+                "name": "label",
+                "label": "Label",
+                "type": "textfield",
+                "value": "Select Location"
+            },
+            {
+                "name": "layout",
+                "label": "Layout",
+                "type": "selectbox",
+                "options": [
+                    { "value": "vertical",   "label": "Vertical (Stacked)" },
+                    { "value": "horizontal", "label": "Horizontal (One Row)" },
+                    { "value": "grid2",      "label": "Grid (2 Columns)" },
+                    { "value": "grid3",      "label": "Grid (3 Columns)" }
+                ],
+                "value": "vertical"
+            },
+            {
+                "name": "interaction",
+                "label": "Interaction Mode",
+                "type": "selectbox",
+                "options": [
+                    { "value": "standard", "label": "Standard (Show All)" },
+                    { "value": "stepped",  "label": "Stepped (One by One)" }
+                ],
+                "value": "standard"
+            },
+            {
+                "name": "useKinyarwanda",
+                "label": "Use Kinyarwanda Province Names",
+                "description": "Display province names in Kinyarwanda (e.g. Kigali City = Umugi wa Kigali)",
+                "type": "checkbox",
+                "options": [ { "value": "true", "label": "Yes" } ],
+                "value": ""
+            },
+            {
+                "name": "stopLevel",
+                "label": "Stop Selection At",
+                "type": "selectbox",
+                "options": [
+                    { "value": "province", "label": "Province" },
+                    { "value": "district", "label": "District" },
+                    { "value": "sector",   "label": "Sector" },
+                    { "value": "cell",     "label": "Cell" },
+                    { "value": "village",  "label": "Village" }
+                ],
+                "value": "village"
+            },
+
+            {
+                "name": "validation_header",
+                "label": "Validation",
+                "type": "header"
+            },
+
+            {
+                "name": "requiredProvince",
+                "label": "Province - Required",
+                "description": "Province must be selected before the form can be submitted",
+                "type": "checkbox",
+                "options": [ { "value": "true", "label": "Yes" } ],
+                "value": ""
+            },
+            {
+                "name": "requiredMessage",
+                "label": "Province - Validation Message",
+                "type": "textfield",
+                "value": "This field is required",
+                "control_field": "requiredProvince",
+                "control_value": "true",
+                "control_use_regex": "false"
+            },
+
+            {
+                "name": "requiredDistrict",
+                "label": "District - Required",
+                "description": "District must be selected before the form can be submitted",
+                "type": "checkbox",
+                "options": [ { "value": "true", "label": "Yes" } ],
+                "value": "",
+                "control_field": "stopLevel",
+                "control_value": "district|sector|cell|village",
+                "control_use_regex": "true"
+            },
+            {
+                "name": "requiredMessageDistrict",
+                "label": "District - Validation Message",
+                "type": "textfield",
+                "value": "This field is required",
+                "control_field": "requiredDistrict",
+                "control_value": "true",
+                "control_use_regex": "false"
+            },
+
+            {
+                "name": "requiredSector",
+                "label": "Sector - Required",
+                "description": "Sector must be selected before the form can be submitted",
+                "type": "checkbox",
+                "options": [ { "value": "true", "label": "Yes" } ],
+                "value": "",
+                "control_field": "stopLevel",
+                "control_value": "sector|cell|village",
+                "control_use_regex": "true"
+            },
+            {
+                "name": "requiredMessageSector",
+                "label": "Sector - Validation Message",
+                "type": "textfield",
+                "value": "This field is required",
+                "control_field": "requiredSector",
+                "control_value": "true",
+                "control_use_regex": "false"
+            },
+
+            {
+                "name": "requiredCell",
+                "label": "Cell - Required",
+                "description": "Cell must be selected before the form can be submitted",
+                "type": "checkbox",
+                "options": [ { "value": "true", "label": "Yes" } ],
+                "value": "",
+                "control_field": "stopLevel",
+                "control_value": "cell|village",
+                "control_use_regex": "true"
+            },
+            {
+                "name": "requiredMessageCell",
+                "label": "Cell - Validation Message",
+                "type": "textfield",
+                "value": "This field is required",
+                "control_field": "requiredCell",
+                "control_value": "true",
+                "control_use_regex": "false"
+            },
+
+            {
+                "name": "requiredVillage",
+                "label": "Village - Required",
+                "description": "Village must be selected before the form can be submitted",
+                "type": "checkbox",
+                "options": [ { "value": "true", "label": "Yes" } ],
+                "value": "",
+                "control_field": "stopLevel",
+                "control_value": "village",
+                "control_use_regex": "false"
+            },
+            {
+                "name": "requiredMessageVillage",
+                "label": "Village - Validation Message",
+                "type": "textfield",
+                "value": "This field is required",
+                "control_field": "requiredVillage",
+                "control_value": "true",
+                "control_use_regex": "false"
+            },
+
+            {
+                "name": "fieldIds_header",
+                "label": "Sub-level DB Column IDs (Optional)",
+                "type": "header",
+                "control_field": "stopLevel",
+                "control_value": "district|sector|cell|village",
+                "control_use_regex": "true"
+            },
+            {
+                "name": "districtId",
+                "label": "District Field ID",
+                "description": "DB column name for district. Leave blank to use: {element_id}_district",
+                "type": "textfield",
+                "required": "True",
+                "control_field": "stopLevel",
+                "control_value": "district|sector|cell|village",
+                "control_use_regex": "true"
+            },
+            {
+                "name": "sectorId",
+                "label": "Sector Field ID",
+                "description": "DB column name for sector. Leave blank to use: {element_id}_sector",
+                "type": "textfield",
+                "required": "True",
+                "control_field": "stopLevel",
+                "control_value": "sector|cell|village",
+                "control_use_regex": "true"
+            },
+            {
+                "name": "cellId",
+                "label": "Cell Field ID",
+                "description": "DB column name for cell. Leave blank to use: {element_id}_cell",
+                "type": "textfield",
+                "required": "True",
+                "control_field": "stopLevel",
+                "control_value": "cell|village",
+                "control_use_regex": "true"
+            },
+            {
+                "name": "villageId",
+                "label": "Village Field ID",
+                "description": "DB column name for village. Leave blank to use: {element_id}_village",
+                "type": "textfield",
+                "required": "True",
+                "control_field": "stopLevel",
+                "control_value": "village",
+                "control_use_regex": "false"
+            }
+        ]
+    }
+]

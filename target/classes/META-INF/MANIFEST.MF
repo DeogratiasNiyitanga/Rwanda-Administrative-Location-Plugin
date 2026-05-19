@@ -1,0 +1,20 @@
+Manifest-Version: 1.0
+Bnd-LastModified: 1779211178747
+Build-Jdk-Spec: 17
+Bundle-Activator: org.joget.rwanda.administrative.locations.Activator
+Bundle-ManifestVersion: 2
+Bundle-Name: Rwanda-Administrative-Locations
+Bundle-SymbolicName: org.rwanda.administrative.locations.Rwanda-Administ
+ rative-Locations
+Bundle-Version: 1.0.0
+Created-By: Apache Maven Bundle Plugin 5.1.8
+DynamicImport-Package: *
+Embed-Dependency: *;scope=compile|runtime;inline=false
+Embed-Directory: dependency
+Embed-StripGroup: true
+Embed-Transitive: true
+Import-Package: java.lang,java.util,org.joget.apps.app.service,org.joget
+ .apps.form.lib,org.joget.apps.form.model,org.joget.apps.form.service,or
+ g.osgi.framework;version="[1.9,2)"
+Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
+Tool: Bnd-6.3.1.202206071316
