@@ -38,6 +38,18 @@
         margin-top: 3px;
         min-height: 0;
     }
+    /* Select showing the placeholder (empty value) — muted like a text input placeholder */
+    .rw-field-wrapper select.rw-placeholder {
+        color: #9ca3af;
+    }
+    /* All real options always black — block inheritance of the muted select color */
+    .rw-field-wrapper select option {
+        color: #333333;
+    }
+    /* Placeholder option (value="") always stays muted in the open list */
+    .rw-field-wrapper select option[value=""] {
+        color: #9ca3af;
+    }
     /* Layout Variants — target the group, not the inner wrapper */
     .rwanda-loc-horizontal {
         display: flex;
@@ -99,8 +111,9 @@
         <#assign villageFieldId  = ((element.properties.villageId)?has_content)?then(element.properties.villageId,   eid + "_village")>
         <#assign useKinyarwanda  = ((element.properties.useKinyarwanda)!'') == "true">
 
-        <#-- Province hidden input -->
-        <input type="hidden" name="${eid}" id="${eid}" value="${(provinceValue)!''?html}">
+        <#-- Province hidden input: use Joget's standard 'value' variable which handles
+             both edit mode (load-binder) and validation-failure re-render (request params) -->
+        <input type="hidden" name="${eid}" id="${eid}" value="${value!''?html}">
 
         <#-- Sub-level hidden inputs -->
         <#if stopLevel != "province">
@@ -121,7 +134,7 @@
             <#-- Province: group wraps wrapper + error so they stay together in flex/grid -->
             <div class="rw-field-group">
                 <div class="rw-field-wrapper">
-                    <select id="p_${eid}" data-level="province"><option value=""></option></select>
+                    <select id="p_${eid}" data-level="province"><option value=""><#if useKinyarwanda>Hitamo Intara<#else>Select Province</#if></option></select>
                     <#if isProvinceRequired><span class="rw-required-star">*</span></#if>
                 </div>
                 <div class="rw-error-msg" id="rw-err-p_${eid}"></div>
@@ -131,7 +144,7 @@
             <#if stopLevel != "province">
             <div class="rw-field-group<#if stepped> rwanda-loc-hidden</#if>" id="wrap_d_${eid}">
                 <div class="rw-field-wrapper">
-                    <select id="d_${eid}" data-level="district" disabled><option value=""></option></select>
+                    <select id="d_${eid}" data-level="district" disabled><option value=""><#if useKinyarwanda>Hitamo Akarere<#else>Select District</#if></option></select>
                     <#if isDistrictRequired><span class="rw-required-star">*</span></#if>
                 </div>
                 <div class="rw-error-msg" id="rw-err-d_${eid}"></div>
@@ -142,7 +155,7 @@
             <#if stopLevel != "province" && stopLevel != "district">
             <div class="rw-field-group<#if stepped> rwanda-loc-hidden</#if>" id="wrap_s_${eid}">
                 <div class="rw-field-wrapper">
-                    <select id="s_${eid}" data-level="sector" disabled><option value=""></option></select>
+                    <select id="s_${eid}" data-level="sector" disabled><option value=""><#if useKinyarwanda>Hitamo Umurenge<#else>Select Sector</#if></option></select>
                     <#if isSectorRequired><span class="rw-required-star">*</span></#if>
                 </div>
                 <div class="rw-error-msg" id="rw-err-s_${eid}"></div>
@@ -153,7 +166,7 @@
             <#if stopLevel != "province" && stopLevel != "district" && stopLevel != "sector">
             <div class="rw-field-group<#if stepped> rwanda-loc-hidden</#if>" id="wrap_c_${eid}">
                 <div class="rw-field-wrapper">
-                    <select id="c_${eid}" data-level="cell" disabled><option value=""></option></select>
+                    <select id="c_${eid}" data-level="cell" disabled><option value=""><#if useKinyarwanda>Hitamo Akagari<#else>Select Cell</#if></option></select>
                     <#if isCellRequired><span class="rw-required-star">*</span></#if>
                 </div>
                 <div class="rw-error-msg" id="rw-err-c_${eid}"></div>
@@ -164,7 +177,7 @@
             <#if stopLevel == "village">
             <div class="rw-field-group<#if stepped> rwanda-loc-hidden</#if>" id="wrap_v_${eid}">
                 <div class="rw-field-wrapper">
-                    <select id="v_${eid}" data-level="village" disabled><option value=""></option></select>
+                    <select id="v_${eid}" data-level="village" disabled><option value=""><#if useKinyarwanda>Hitamo Umudugudu<#else>Select Village</#if></option></select>
                     <#if isVillageRequired><span class="rw-required-star">*</span></#if>
                 </div>
                 <div class="rw-error-msg" id="rw-err-v_${eid}"></div>
@@ -191,6 +204,21 @@
         "Northern Province": "Intara y'Amajyaruguru"
     };
     var useKinyarwanda = ${useKinyarwanda?string('true','false')};
+
+    // Placeholder labels for the empty first option in each dropdown.
+    var lvlLabels = {
+        en: { p: 'Select Province', d: 'Select District', s: 'Select Sector',   c: 'Select Cell',    v: 'Select Village'   },
+        rw: { p: 'Hitamo Intara',   d: 'Hitamo Akarere',  s: 'Hitamo Umurenge', c: 'Hitamo Akagari', v: 'Hitamo Umudugudu' }
+    };
+    function lvlLabel(key) {
+        return (useKinyarwanda ? lvlLabels.rw : lvlLabels.en)[key] || '';
+    }
+    // Toggle muted colour on the <select> element itself when the placeholder is shown.
+    function markSel(sel) {
+        if (!sel) return;
+        if (sel.value === '') sel.classList.add('rw-placeholder');
+        else sel.classList.remove('rw-placeholder');
+    }
 
     // Reverse map: Kinyarwanda name → English key (needed for data lookups)
     var kinyarwandaToEnglish = {};
@@ -240,12 +268,17 @@
             if (this.c) this.c.onchange = function() { self.update('c', this.value); };
             if (this.v) this.v.onchange = function() { self.persist(); };
 
-            this.p.innerHTML = '<option value=""></option>';
+            this.p.innerHTML = '<option value="">' + lvlLabel('p') + '</option>';
             Object.keys(this.data).forEach(function(k) {
                 var display = useKinyarwanda && kinyarwandaNames[k] ? kinyarwandaNames[k] : k;
                 // value = Kinyarwanda when enabled so the saved DB column stores Kinyarwanda
                 self.p.add(new Option(display, display));
             });
+
+            if (this.d) this.d.innerHTML = '<option value="">' + lvlLabel('d') + '</option>';
+            if (this.s) this.s.innerHTML = '<option value="">' + lvlLabel('s') + '</option>';
+            if (this.c) this.c.innerHTML = '<option value="">' + lvlLabel('c') + '</option>';
+            if (this.v) this.v.innerHTML = '<option value="">' + lvlLabel('v') + '</option>';
 
             var dh = document.getElementById("_rw_d_" + id);
             var sh = document.getElementById("_rw_s_" + id);
@@ -260,6 +293,9 @@
                 if (ch && ch.value && this.c) { this.c.value = ch.value; self.update('c', ch.value, true); }
                 if (vh && vh.value && this.v) { this.v.value = vh.value; }
             }
+
+            // Apply placeholder/value colour to every select on first render
+            markSel(this.p); markSel(this.d); markSel(this.s); markSel(this.c); markSel(this.v);
 
             // Re-render after server rejection: show errors at correct positions
             if (hasServerError) {
@@ -299,7 +335,7 @@
             var self = this;
             if (lvl === 'p') {
                 if (this.d) {
-                    this.d.innerHTML = '<option value=""></option>';
+                    this.d.innerHTML = '<option value="">' + lvlLabel('d') + '</option>';
                     var ek = toEnglishKey(v);
                     if (ek && this.data[ek]) Object.keys(this.data[ek]).forEach(function(k) { self.d.add(new Option(k, k)); });
                     this.d.disabled = !v;
@@ -307,7 +343,7 @@
                 this.reset(['s', 'c', 'v']);
             } else if (lvl === 'd') {
                 if (this.s) {
-                    this.s.innerHTML = '<option value=""></option>';
+                    this.s.innerHTML = '<option value="">' + lvlLabel('s') + '</option>';
                     var pek = toEnglishKey(this.p.value);
                     if (v && this.data[pek] && this.data[pek][v]) Object.keys(this.data[pek][v]).forEach(function(k) { self.s.add(new Option(k, k)); });
                     this.s.disabled = !v;
@@ -315,7 +351,7 @@
                 this.reset(['c', 'v']);
             } else if (lvl === 's') {
                 if (this.c) {
-                    this.c.innerHTML = '<option value=""></option>';
+                    this.c.innerHTML = '<option value="">' + lvlLabel('c') + '</option>';
                     var pek = toEnglishKey(this.p.value), dv = this.d.value;
                     if (v && this.data[pek][dv] && this.data[pek][dv][v]) Object.keys(this.data[pek][dv][v]).forEach(function(k) { self.c.add(new Option(k, k)); });
                     this.c.disabled = !v;
@@ -323,7 +359,7 @@
                 this.reset(['v']);
             } else if (lvl === 'c') {
                 if (this.v) {
-                    this.v.innerHTML = '<option value=""></option>';
+                    this.v.innerHTML = '<option value="">' + lvlLabel('v') + '</option>';
                     var pek = toEnglishKey(this.p.value), dv = this.d.value, sv = this.s.value;
                     if (v && this.data[pek][dv][sv] && this.data[pek][dv][sv][v]) this.data[pek][dv][sv][v].forEach(function(k) { self.v.add(new Option(k, k)); });
                     this.v.disabled = !v;
@@ -337,7 +373,11 @@
         reset: function(lvls) {
             var self = this;
             lvls.forEach(function(l) {
-                if (self[l]) { self[l].innerHTML = '<option value=""></option>'; self[l].disabled = true; }
+                if (self[l]) {
+                    self[l].innerHTML = '<option value="">' + lvlLabel(l) + '</option>';
+                    self[l].disabled = true;
+                    markSel(self[l]);
+                }
             });
         },
 
@@ -367,6 +407,7 @@
             if (sh) sh.value = this.s ? this.s.value : "";
             if (ch) ch.value = this.c ? this.c.value : "";
             if (vh) vh.value = this.v ? this.v.value : "";
+            markSel(this.p); markSel(this.d); markSel(this.s); markSel(this.c); markSel(this.v);
             this.showInlineErrors(false);
         },
 

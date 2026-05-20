@@ -24,9 +24,10 @@ public class RwandaLocationSelector extends Element implements FormBuilderPalett
     // ── Shadow child element ─────────────────────────────────────────────────────
     //
     // Extends HiddenField so Joget's List Builder / filter palette recognise each
-    // sub-level as a real form field.  selfValidate is no-op (parent handles all
-    // validation) and continueValidation=false prevents recursion into non-existent
-    // grandchildren — both stop the NPE in FormUtil.executeValidators.
+    // sub-level as a real form field.  selfValidate is a no-op (parent handles
+    // validation); renderTemplate returns "" to prevent duplicate hidden inputs;
+    // formatData returns null so Joget's executeElementFormatData skips this
+    // element (parent's formatData writes all values).
 
     private static final class ShadowHiddenField extends HiddenField {
         @Override
@@ -35,14 +36,21 @@ public class RwandaLocationSelector extends Element implements FormBuilderPalett
         }
         @Override
         public boolean continueValidation(FormData formData) {
-            // Explicit false: skip validator + selfValidate + child recursion for
-            // this shadow element. Do NOT call super (which calls isHidden() and
-            // may NPE on a context-less dynamically created element).
-            return false;
+            // Return true so Joget's validation tree processes this element (selfValidate
+            // is a no-op above). Do NOT call super: HiddenField.continueValidation calls
+            // isHidden() which NPEs on a dynamically created element with no form context.
+            return true;
+        }
+        @Override
+        public String renderTemplate(FormData formData, Map dataModel) {
+            return ""; // parent FTL renders all hidden inputs; prevent duplicate <input>
         }
         @Override
         public FormRowSet formatData(FormData formData) {
-            return new FormRowSet(); // parent's formatData saves all values
+            // Return null, not an empty FormRowSet. Joget's executeElementFormatData does
+            // an unconditional rowSet.get(0) when the list is non-null — that crashes on
+            // an empty list. Returning null causes it to skip this element safely.
+            return null;
         }
     }
 
@@ -113,17 +121,19 @@ public class RwandaLocationSelector extends Element implements FormBuilderPalett
         dataModel.put("locationData", locationDataJson);
         dataModel.put("element", this);
 
-        // All values read from the request-parameter store so selections persist
-        // across validation failures (Joget's 'value' FTL var uses the load-binder
-        // store, which is empty for new records on re-render after failed submission).
         String elementId = getPropertyString(FormUtil.PROPERTY_ID);
-        dataModel.put("provinceValue", coalesce(getParam(formData, elementId)));
+
+        // Province: explicitly set the 'value' FTL variable the same way Joget's
+        // built-in elements do — getElementPropertyValue tries request params first
+        // (POST / validation-failure re-render), then load-binder data (edit mode).
+        String provinceVal = FormUtil.getElementPropertyValue(this, formData);
+        dataModel.put("value", provinceVal != null ? provinceVal : "");
+
         String[] modelKeys  = {"districtValue",  "sectorValue",  "cellValue",  "villageValue"};
         String[] errorKeys  = {"districtError",  "sectorError",  "cellError",  "villageError"};
         for (int i = 0; i < LEVEL_PROPS.length; i++) {
             String fieldId = resolvedFieldId(i, elementId);
-            dataModel.put(modelKeys[i], coalesce(getParam(formData, fieldId)));
-            // Read per-field errors so the FTL can show them next to the right dropdown
+            dataModel.put(modelKeys[i], getFieldValue(formData, fieldId));
             String err = (formData != null) ? formData.getFormError(fieldId) : null;
             dataModel.put(errorKeys[i], err != null ? err : "");
         }
@@ -139,13 +149,13 @@ public class RwandaLocationSelector extends Element implements FormBuilderPalett
         FormRow row = new FormRow();
 
         String id = getPropertyString(FormUtil.PROPERTY_ID);
-        row.put(id, coalesce(getParam(formData, id)));
+        row.put(id, getFieldValue(formData, id));
 
         int stopIndex = stopLevelIndex();
         for (int i = 0; i < LEVEL_PROPS.length; i++) {
             if ((i + 1) > stopIndex) break;
             String fieldId = resolvedFieldId(i, id);
-            row.put(fieldId, coalesce(getParam(formData, fieldId)));
+            row.put(fieldId, getFieldValue(formData, fieldId));
         }
 
         rowSet.add(row);
@@ -158,7 +168,7 @@ public class RwandaLocationSelector extends Element implements FormBuilderPalett
     public Boolean selfValidate(FormData formData) {
         String id = getPropertyString(FormUtil.PROPERTY_ID);
 
-        if ("true".equals(getPropertyString("requiredProvince")) && coalesce(getParam(formData, id)).isEmpty()) {
+        if ("true".equals(getPropertyString("requiredProvince")) && getFieldValue(formData, id).isEmpty()) {
             String msg = getPropertyString("requiredMessage");
             formData.addFormError(id, msg.isEmpty() ? "This field is required" : msg);
             return false;
@@ -173,7 +183,7 @@ public class RwandaLocationSelector extends Element implements FormBuilderPalett
             if ((i + 1) > stopIndex) break;
             if (!"true".equals(getPropertyString(reqProps[i]))) continue;
             String fieldId = resolvedFieldId(i, id);
-            if (coalesce(getParam(formData, fieldId)).isEmpty()) {
+            if (getFieldValue(formData, fieldId).isEmpty()) {
                 String msg = getPropertyString(msgProps[i]);
                 // Store under the parent element ID so Joget's AJAX error handler
                 // can locate the element; JS showInlineErrors() positions the
@@ -202,11 +212,21 @@ public class RwandaLocationSelector extends Element implements FormBuilderPalett
                 : elementId + "_" + LEVEL_SUFFIX[i];
     }
 
-    private String getParam(FormData formData, String name) {
-        return (formData != null) ? formData.getRequestParameter(name) : null;
-    }
+    // Read a field value from whichever store has it:
+    //   1. Request parameter — POST (form submission / validation-failure re-render)
+    //   2. Load-binder data  — GET (edit mode, existing record)
+    //      Uses getLoadBinderDataProperty(this, fieldName) which calls findLoadBinder(this)
+    //      to walk up the element tree and find the ancestor's CRUD binder — the same
+    //      mechanism Joget uses internally for its own built-in fields.
+    private String getFieldValue(FormData formData, String fieldName) {
+        if (formData == null) return "";
 
-    private String coalesce(String val) {
+        // POST path: request params carry the submitted values
+        String val = formData.getRequestParameter(fieldName);
+        if (val != null && !val.isEmpty()) return val;
+
+        // GET/edit path: load-binder data via Joget's ancestor-binder lookup
+        val = formData.getLoadBinderDataProperty(this, fieldName);
         return val != null ? val : "";
     }
 }

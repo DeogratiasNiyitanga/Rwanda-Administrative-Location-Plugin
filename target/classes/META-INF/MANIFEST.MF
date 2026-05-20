@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1779211178747
+Bnd-LastModified: 1779275251918
 Build-Jdk-Spec: 17
 Bundle-Activator: org.joget.rwanda.administrative.locations.Activator
 Bundle-ManifestVersion: 2
